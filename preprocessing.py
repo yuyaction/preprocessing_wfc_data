@@ -1,4 +1,4 @@
-import os,sys
+import os,sys,re
 import numpy as np
 import urllib.request
 import urllib.parse
@@ -31,6 +31,8 @@ def get_URL(year,month,base_url):
     month_url = base_url+str(year)+'/'+str(month).zfill(2)+'/'
     html = urllib.request.urlopen(month_url) #get html 
     soup = BeautifulSoup(html, 'html.parser')
+    search = re.compile('M|G')
+    size_list_tmp = soup.find_all(text=search)
     links = soup.find_all('a')
     for dates in links:
         href= dates.attrs['href']
@@ -38,21 +40,38 @@ def get_URL(year,month,base_url):
         if href != string:
             continue
         URL_list.append(month_url+href)
+    #get file size
+    for i in size_list_tmp:
+        if i[-4] == 'M':
+            mega = i[-7:-4]
+            size_list.append(float(mega)*0.001)
+        elif  i[-4] == 'G':
+            giga = i[-7:-4]
+            size_list.append(float(giga))
     
 
-year = 2018
+year = 2017
 month = 3
 save_dict = './cdf/'+str(year)+'/'+str(month).zfill(2)+'/'
 os.makedirs(save_dict,exist_ok=True) #make directories to save
 URL_list = []
+size_list = []
 
-#Authorization and download cdf files
+#Authorization and getting URL_list for download
 setup_digest_auth(base_url,user,password) #digest auth
 get_URL(year,month,base_url)
+#calculation sum of file size
+np_size_list = np.array(size_list)
+sum_size = np.sum(np.round(np_size_list, decimals=2))
+this_month = str(year)+'/'+str(month).zfill(2)
+print( this_month + ' needs ' + str(sum_size) + 'G byte empty area.')
+
+#cdf download
 for url in URL_list:
     url_path = urllib.parse.urlparse(url).path #get path from URL
     file_name = os.path.basename(url_path) #get file name
     save_path = save_dict + file_name
+    if os.path.exists(save_path) == True: 
+        continue
     download(url,save_path)
-
 
