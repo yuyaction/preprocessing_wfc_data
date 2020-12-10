@@ -25,8 +25,13 @@ def split(epoch_data):
     number_segment = np.arange(1,position.shape[0])
     return position, number_segment
 
+#calculation of fce
+def fce(start,end):
+    fce = Q / (M * 2 * np.pi) * mgf_mgnt * 1e-9
+    fce_half = fce / 2
+
 # Select WFC file
-filename = './cdf/2018/03/erg_pwe_wfc_l2_b_65khz_2018032306_v00_01.cdf'
+filename = './wfc/2018/03/erg_pwe_wfc_l2_b_65khz_2018032306_v00_01.cdf'
 file_data = cdf.CDF(filename)
 #read epoch data and data split
 epoch_data = file_data['epoch'][:]
@@ -40,6 +45,32 @@ Bx_raw = np.ravel(Bx_tmp)
 By_raw = np.ravel(By_tmp)
 Bz_raw = np.ravel(Bz_tmp)
 
+# Select MGF file
+mgf_name = './mgf/2018/03/erg_mgf_l2_8sec_20180323_v03.04.cdf'
+mgf_data = cdf.CDF(mgf_name)
+print(mgf_data)
+mgf_epoch = mgf_data['epoch_8sec'][:]
+mgf_B_field = mgf_data['magt_8sec'][:]
+mgf_B_field = np.where((mgf_B_field>-1e10)&(mgf_B_field<1e10),mgf_B_field,np.nan)
+
+split_tmp = number_segment[0]
+time_segment_start = POSITION[split_tmp - 1] + 1  # start point of epoch segment
+time_segment_end = POSITION[split_tmp]  # end point of epoch segment
+loc1, loc2 = 0, 0  # find position in MGF epoch <- for reading mgf magnitude data
+for loc1 in range(mgf_epoch.shape[0]):
+    if epoch_data[time_segment_start] <= mgf_epoch[loc1]: break
+for loc2 in range(mgf_epoch.shape[0]):
+    if epoch_data[time_segment_end-1] <= mgf_epoch[loc2]: break
+mgf_time = mgf_epoch[loc1-1:loc2+1]  # mgf time segment
+mgf_mgnt = mgf_B_field[loc1-1:loc2+1]  # mgf magnitude segment
+# make sure mgf file is not missed
+if mgf_mgnt.shape[0] < 1:
+    msg.showwarning('Warning', 'Please select MGF data!')
+    sys.exit()
+fce = Q / (M * 2 * np.pi) * mgf_mgnt * 1e-9
+fce_half = fce / 2
+
+
 #spectrogram settings
 split_tmp = number_segment[0]
 start = (POSITION[split_tmp - 1] + 1) * 8192 + PARAMETER  # calculate start point of one segment
@@ -50,6 +81,13 @@ noverlap = 4096
 #make spectrogram
 B = (Bx_raw+By_raw+Bz_raw)/3
 spec_data, spec_freq, spec_time, spec_img = plt.specgram(B[start:end], NFFT=nfft, Fs=Fs, noverlap=noverlap, scale='dB',cmap='jet')
+
+#fce plotting
+ratio = spec_time[-1] / (mgf_mgnt.shape[0] - 1)  # for drawing fce line in specgram method
+mgf_time_tick = np.arange(0.1, spec_time[-1], ratio)
+mgf_time_tick = np.insert(mgf_time_tick, mgf_time_tick.shape[0], spec_time[-1])
+#plt.plot(mgf_time_tick, fce, color="r", linestyle="--", label="electron cyclotron freq.")
+plt.plot(mgf_time_tick, fce_half, color="r", linestyle="--", label="half electron cyclotron freq.")
 
 #time axis settings
 time_s = math.floor(start/8192)
@@ -69,7 +107,7 @@ plt.xticks(spec_time,time_array)
 plt.locator_params(axis='x', nbins=10)    # arrange time ticks
 ax_x, ax_y = plt.gca().get_position().x0, plt.gca().get_position().y0 
 plt.figtext(ax_x - 0.05, ax_y - 0.05, 'Time:\nms:\nDate:')  # label
-plt.ylim(0,2000)
+plt.ylim(0,np.max(fce))
 plt.clim(-50,20)
 plt.show()
 
