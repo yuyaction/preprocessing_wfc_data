@@ -51,7 +51,7 @@ def get_URL(year,month,base_url):
     
 
 year = 2017
-month = 3
+month = 5
 save_dict = './cdf/'+str(year)+'/'+str(month).zfill(2)+'/'
 os.makedirs(save_dict,exist_ok=True) #make directories to save
 URL_list = []
