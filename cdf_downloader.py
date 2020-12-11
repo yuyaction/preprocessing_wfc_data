@@ -64,7 +64,7 @@ get_URL(year,month,base_url)
 np_size_list = np.array(size_list)
 sum_size = np.sum(np.round(np_size_list, decimals=2))
 this_month = str(year)+'/'+str(month).zfill(2)
-print( this_month + ' needs ' + str(sum_size) + 'G byte empty area.')
+print( this_month + ' needs ' + str(sum_size) + 'G byte empty space.')
 
 #cdf download
 for url in URL_list:
