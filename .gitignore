@@ -5,3 +5,4 @@ get_URL_list.py
 /venv/
 /figure/
 /__pycache__/
+/output/
