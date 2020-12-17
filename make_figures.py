@@ -5,6 +5,7 @@ https://github.com/ianliu98/ERG-spectrum-generator/blob/main/ERG_spectrum_genera
 import os,sys,math,glob
 import numpy as np
 import matplotlib.pyplot as plt
+os.environ["CDF_LIB"] = '/home/yuya/local/src/cdf38_0-dist/lib/'
 import spacepy.pycdf as cdf
 import datetime
 
@@ -21,7 +22,7 @@ nfft = 8192
 Fs = 65536
 noverlap = 4096
 
-year = 2018
+year = 2017
 month = 3
 # -----------------------------------------------
 
@@ -35,6 +36,7 @@ def split(wfc_epoch):
     return position, number_segment
 
 def time_setting(start,end):
+    flag = 0
     ### time axis settings
     time_segment_start = int((start - PARAMETER)/DATA_NUMBER)  # start point of epoch segment
     time_segment_end =  int((end - PARAMETER)/DATA_NUMBER) # end point of epoch segment
@@ -50,7 +52,7 @@ def time_setting(start,end):
     # make sure mgf file is not missed
     if mgf_mgnt.shape[0] < 1:
         print('No mgf data of this time!')
-        sys.exit()
+        flag = 1
     fce = Q / (M * 2 * np.pi) * mgf_mgnt * 1e-9
     #make time label
     time_s = math.floor(start/DATA_NUMBER)
@@ -59,16 +61,19 @@ def time_setting(start,end):
     for index,spec_time_tmp in enumerate(spec_time):
         time_trans = time_s_epoch-datetime.timedelta(seconds=(nfft-noverlap)/Fs)+datetime.timedelta(seconds=PARAMETER/65536)+datetime.timedelta(seconds=spec_time_tmp) #offseted by PARAMETER
         time_array[index] = time_trans.strftime('%H:%M:%S')+'\n' + time_trans.strftime('%f')+'\n'+time_trans.strftime('%Y.%m.%d')    # create time ticks
-    return time_array, fce
+    return time_array, fce, flag
 
 def initFigure():
     plt.rcParams["figure.figsize"] = (16, 9)
 
-def saveFigure(split_number,start,end,save_path,name):
+def get_fig_name(split_number,start,end,save_path,name):
     num_iter = str(split_number).zfill(2)
     s_num = str(start).zfill(7)
     e_num = str(end).zfill(7)
-    plt.savefig(save_path+'/'+name+'_split'+num_iter+'_'+s_num+'_'+e_num+'.png')
+    return save_path+'/'+name+'_split'+num_iter+'_'+s_num+'_'+e_num+'.png'
+
+def saveFigure(fig_name):
+    plt.savefig(fig_name)
     plt.clf()
 
 def plot_setting(spec_time,time_array,fce):
@@ -94,7 +99,8 @@ def get_name(file_name):
     #get save_path and save_name
     tmp_name = os.path.splitext(os.path.basename(file_name)) #get file name
     date = tmp_name[0][-17:-9]
-    save_name = tmp_name[0][-17:]
+    save_name = tmp_name[0][-17:-7]
+    print(save_name)
     return date, save_name
 
 
@@ -105,9 +111,10 @@ mgf_dict = './mgf/'+str(year)+'/'+str(month).zfill(2)+'/'
 wfc_list = glob.glob(wfc_dict+'*b*')
 mgf_list = glob.glob(mgf_dict+'*v03.04*')
 os.makedirs(save_dict,exist_ok=True) #make directories to save
-print(mgf_list)
 
 # Select WFC file
+j=0
+k=0
 for wfc_name in wfc_list:
     wfc_data = cdf.CDF(wfc_name)
 #read epoch data and data split
@@ -140,18 +147,32 @@ for wfc_name in wfc_list:
     for split_tmp in number_segment:
         start = (POSITION[split_tmp - 1] + 1) * DATA_NUMBER + PARAMETER  # calculate start point of one segment
         end = (POSITION[split_tmp]) * DATA_NUMBER  # end point of one segment
-        print(start,end)
 #make spectrogram
+        if end-start < TIME_SCALE*Fs:
+            continue
         for i in range(start,end,TIME_SCALE*Fs):
+            j=j+1
             new_start = i
             new_end = i+TIME_SCALE*Fs
+
             if i+TIME_SCALE*Fs > end:
                 new_start = end-TIME_SCALE*Fs
                 new_end = end
+            fig_name = get_fig_name(split_tmp, new_start, new_end, save_dict, save_name)
+            if os.path.exists(fig_name) == True: 
+                continue
             initFigure()
             spec_data, spec_freq, spec_time, spec_img = plt.specgram(B[new_start:new_end], NFFT=nfft, Fs=Fs, noverlap=noverlap, scale='dB',cmap='jet')
-            time_array, fce = time_setting(new_start,new_end)
-            plot_setting(spec_time,time_array,fce)
-            fce_plot(spec_time,fce)
-            saveFigure(split_tmp, new_start, new_end, save_dict, save_name)
-        print(split_tmp)
+            time_array, fce, flag = time_setting(new_start,new_end)
+            if flag == 1:
+                continue
+            try:
+                plot_setting(spec_time,time_array,fce)
+                fce_plot(spec_time,fce)
+            except:
+                k = k+1
+                continue
+            saveFigure(fig_name)
+    print(wfc_name)
+print(j)
+print(k)
