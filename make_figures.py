@@ -23,7 +23,7 @@ Fs = 65536
 noverlap = 4096
 
 year = 2017
-month = 3
+month = 4
 # -----------------------------------------------
 
 # data split
@@ -68,8 +68,8 @@ def initFigure():
 
 def get_fig_name(split_number,start,end,save_path,name):
     num_iter = str(split_number).zfill(2)
-    s_num = str(start).zfill(7)
-    e_num = str(end).zfill(7)
+    s_num = str(start).zfill(8)
+    e_num = str(end).zfill(8)
     return save_path+'/'+name+'_split'+num_iter+'_'+s_num+'_'+e_num+'.png'
 
 def saveFigure(fig_name):
