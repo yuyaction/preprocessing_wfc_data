@@ -27,7 +27,7 @@ def move_dict(dict,file_path_local): #move a file from current directory to anot
     shutil.move(file_path_local,dict)
     fig_num += 1
     print(fig_num)
-    if fig_num > last_num:
+    if fig_num > last_num-1:
         root.quit()
     file_path = fig_name_list[fig_num]
     plot_figrues(file_path)

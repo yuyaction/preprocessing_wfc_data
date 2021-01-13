@@ -49,15 +49,17 @@ def get_URL(year,month,base_url):
             giga = i[-7:-4]
             size_list.append(float(giga))
     
-
+#------------------------------------------------
 year = 2017
 month = 5
+#------------------------------------------------
 save_dict = './mgf/'+str(year)+'/'+str(month).zfill(2)+'/'
 os.makedirs(save_dict,exist_ok=True) #make directories to save
 URL_list = []
 size_list = []
 
 #Authorization and getting URL_list for download
+#if you need the authentification to get some data, please use "setup_digest_auth" function.
 #setup_digest_auth(mgf_url,user,password) #digest auth
 get_URL(year,month,mgf_url)
 #calculation sum of file size
@@ -74,4 +76,3 @@ for url in URL_list:
     if os.path.exists(save_path) == True: 
         continue
     download(url,save_path)
-
