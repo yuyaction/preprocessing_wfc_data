@@ -106,11 +106,12 @@ def get_name(file_name):
 
 #
 save_dict = './figure/'+str(year)+'/'+str(month).zfill(2)+'/'
+new_save_dict = './modified_figure/'+str(year)+'/'+str(month).zfill(2)+'/'
 wfc_dict = './wfc/'+str(year)+'/'+str(month).zfill(2)+'/'
 mgf_dict = './mgf/'+str(year)+'/'+str(month).zfill(2)+'/'
 wfc_list = glob.glob(wfc_dict+'*b*')
 mgf_list = glob.glob(mgf_dict+'*v03.04*')
-os.makedirs(save_dict,exist_ok=True) #make directories to save
+os.makedirs(new_save_dict,exist_ok=True) #make directories to save
 
 None_list = glob.glob(save_dict+'*None.png')
 None_list = sorted(None_list)
@@ -142,9 +143,14 @@ print("AS       : ",AS_num," ",round(AS_num/total_num,3)*100,"%")
 print("Total    : ",total_num)
 
 # Select WFC file
+all_fig_list = glob.glob(save_dict+'*.png')
 j=0
 k=0
-for wfc_name in wfc_list:
+for fig_name in all_fig_list:
+    wfc_date_time = fig_name[17:27]
+    wfc_name = glob.glob(wfc_dict+'*'+wfc_date_time+'*.png')
+    print(wfc_name)
+    sys.exit()
     wfc_data = cdf.CDF(wfc_name)
 #read epoch data and data split
     wfc_epoch = wfc_data['epoch'][:]
