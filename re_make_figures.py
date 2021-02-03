@@ -146,12 +146,10 @@ print("Total    : ",total_num)
 all_fig_list = glob.glob(save_dict+'*.png')
 j=0
 k=0
-for fig_name in all_fig_list:
-    wfc_date_time = fig_name[17:27]
-    wfc_name = glob.glob(wfc_dict+'*'+wfc_date_time+'*.png')
-    print(wfc_name)
-    sys.exit()
-    wfc_data = cdf.CDF(wfc_name)
+for old_fig_name in old_fig_list:
+    wfc_date_time = old_fig_name[17:27]
+    wfc_name = glob.glob(wfc_dict+'*b_65khz*'+wfc_date_time+'*.cdf')
+    wfc_data = cdf.CDF(wfc_name[0])
 #read epoch data and data split
     wfc_epoch = wfc_data['epoch'][:]
     tsize = wfc_epoch.shape[0]
@@ -193,7 +191,7 @@ for fig_name in all_fig_list:
             if i+TIME_SCALE*Fs > end:
                 new_start = end-TIME_SCALE*Fs
                 new_end = end
-            fig_name = get_fig_name(split_tmp, new_start, new_end, save_dict, save_name)
+            fig_name = get_fig_name(split_tmp, new_start, new_end, new_save_dict, save_name)
             if os.path.exists(fig_name) == True: 
                 continue
             initFigure()

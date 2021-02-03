@@ -16,7 +16,7 @@ MGNT = np.zeros(0)  # MGF wave magnitude
 MGF_EPOCH = np.zeros(0)  # MGF epoch
 Q = 1.60217662e-19  # charge of electron
 M = 9.10938356e-31  # mass of electron
-TIME_SCALE = 8 #time scaling for plot(n seconds) 
+TIME_SCALE = 4 #time scaling for plot(n seconds) 
 
 nfft = 8192
 Fs = 65536
@@ -100,7 +100,6 @@ def get_name(file_name):
     tmp_name = os.path.splitext(os.path.basename(file_name)) #get file name
     date = tmp_name[0][-17:-9]
     save_name = tmp_name[0][-17:-7]
-    print(save_name)
     return date, save_name
 
 
@@ -108,13 +107,14 @@ def get_name(file_name):
 save_dict = './figure/'+str(year)+'/'+str(month).zfill(2)+'/'
 wfc_dict = './wfc/'+str(year)+'/'+str(month).zfill(2)+'/'
 mgf_dict = './mgf/'+str(year)+'/'+str(month).zfill(2)+'/'
-wfc_list = glob.glob(wfc_dict+'*b*')
+wfc_list = glob.glob(wfc_dict+'*b_65khz*')
 mgf_list = glob.glob(mgf_dict+'*v03.04*')
 os.makedirs(save_dict,exist_ok=True) #make directories to save
 
 # Select WFC file
 j=0
 k=0
+l=0
 for wfc_name in wfc_list:
     wfc_data = cdf.CDF(wfc_name)
 #read epoch data and data split
@@ -149,6 +149,8 @@ for wfc_name in wfc_list:
         end = (POSITION[split_tmp]) * DATA_NUMBER  # end point of one segment
 #make spectrogram
         if end-start < TIME_SCALE*Fs:
+            l = l+1
+            print(l)
             continue
         for i in range(start,end,TIME_SCALE*Fs):
             j=j+1

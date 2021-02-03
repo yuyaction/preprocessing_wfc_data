@@ -6,5 +6,6 @@ get_URL_list.py
 /mgf/
 /venv/
 /figure/
+/figure_old/
 /__pycache__/
 /output/
