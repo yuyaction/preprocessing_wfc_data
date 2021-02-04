@@ -24,6 +24,11 @@ noverlap = 4096
 
 year = 2017
 month = 4
+
+upper_band = True
+lower_band = True
+is_half_fce = False
+is_axis = False
 # -----------------------------------------------
 
 # data split
@@ -66,14 +71,17 @@ def time_setting(start,end):
 def initFigure():
     plt.rcParams["figure.figsize"] = (16, 9)
 
-def get_fig_name(split_number,start,end,save_path,name):
-    num_iter = str(split_number).zfill(2)
+def get_fig_name(start,end,save_path,name,packet):
     s_num = str(start).zfill(8)
     e_num = str(end).zfill(8)
-    return save_path+'/'+name+'_split'+num_iter+'_'+s_num+'_'+e_num+'.png'
+    return save_path+name+'_'+s_num+'_'+e_num+'_'+packet+'.png'
 
 def saveFigure(fig_name):
     plt.savefig(fig_name)
+    plt.clf()
+
+def saveFigure_without_axis(fig_name):
+    plt.savefig(fig_name,bbox_inches="tight", pad_inches=0.0)
     plt.clf()
 
 def plot_setting(spec_time,time_array,fce):
@@ -85,14 +93,12 @@ def plot_setting(spec_time,time_array,fce):
     plt.locator_params(axis='x', nbins=10)    # arrange time ticks
     ax_x, ax_y = plt.gca().get_position().x0, plt.gca().get_position().y0 
     plt.figtext(ax_x - 0.05, ax_y - 0.05, 'Time:\nms:\nDate:')  # label
-    plt.ylim(0,np.max(fce))
     plt.clim(-50,20)
 
 def fce_plot(spec_time,fce):
     ratio = spec_time[-1] / (fce.shape[0] - 1)  # for drawing fce line in specgram method
     mgf_time_tick = np.arange(0.1, spec_time[-1], ratio)
     mgf_time_tick = np.insert(mgf_time_tick, mgf_time_tick.shape[0], spec_time[-1])
-#plt.plot(mgf_time_tick, fce, color="r", linestyle="--", label="electron cyclotron freq.")
     plt.plot(mgf_time_tick, fce/2, color="r", linestyle="--", label="half electron cyclotron freq.")
 
 def get_name(file_name):
@@ -134,22 +140,27 @@ AS_num = len(AS_list)
 None_num = len(None_list)
 
 total_num = None_num+Structure_num+Rising_num+Falling_num+Hiss_num+AS_num
-print("None     : ",None_num," ",round(None_num/total_num,3)*100,"%")
-print("Structure: ",Structure_num," ",round(Structure_num/total_num,3)*100,"%")
-print("Rising   : ",Rising_num," ",round(Rising_num/total_num,3)*100,"%")
-print("Falling  : ",Falling_num," ",round(Falling_num/total_num,3)*100,"%")
-print("Hiss     : ",Hiss_num," ",round(Hiss_num/total_num,3)*100,"%")
-print("AS       : ",AS_num," ",round(AS_num/total_num,3)*100,"%")
-print("Total    : ",total_num)
+if total_num>0:
+    print("None     : ",None_num," ",round(None_num/total_num,3)*100,"%")
+    print("Structure: ",Structure_num," ",round(Structure_num/total_num,3)*100,"%")
+    print("Rising   : ",Rising_num," ",round(Rising_num/total_num,3)*100,"%")
+    print("Falling  : ",Falling_num," ",round(Falling_num/total_num,3)*100,"%")
+    print("Hiss     : ",Hiss_num," ",round(Hiss_num/total_num,3)*100,"%")
+    print("AS       : ",AS_num," ",round(AS_num/total_num,3)*100,"%")
+    print("Total    : ",total_num)
+else:
+    print('No Figures.')
+    sys.exit()
 
 # Select WFC file
-all_fig_list = glob.glob(save_dict+'*.png')
+old_fig_list = glob.glob(save_dict+'*.png')
+old_fig_list = glob.glob(save_dict+'*Rising.png')
 j=0
 k=0
 for old_fig_name in old_fig_list:
     wfc_date_time = old_fig_name[17:27]
-    wfc_name = glob.glob(wfc_dict+'*b_65khz*'+wfc_date_time+'*.cdf')
-    wfc_data = cdf.CDF(wfc_name[0])
+    wfc_name = glob.glob(wfc_dict+'*b_65khz*'+wfc_date_time+'*.cdf')[0]
+    wfc_data = cdf.CDF(wfc_name)
 #read epoch data and data split
     wfc_epoch = wfc_data['epoch'][:]
     tsize = wfc_epoch.shape[0]
@@ -177,35 +188,48 @@ for old_fig_name in old_fig_list:
     mgf_B_field = mgf_data['magt_8sec'][:]
     mgf_B_field = np.where((mgf_B_field>-1e10)&(mgf_B_field<1e10),mgf_B_field,np.nan)
 
-    for split_tmp in number_segment:
-        start = (POSITION[split_tmp - 1] + 1) * DATA_NUMBER + PARAMETER  # calculate start point of one segment
-        end = (POSITION[split_tmp]) * DATA_NUMBER  # end point of one segment
-#make spectrogram
-        if end-start < TIME_SCALE*Fs:
-            continue
-        for i in range(start,end,TIME_SCALE*Fs):
-            j=j+1
-            new_start = i
-            new_end = i+TIME_SCALE*Fs
+    new_start = int(old_fig_name[36:44])
+    new_end = int(old_fig_name[45:53])
+    if 'None' in old_fig_name:
+        packet = 'None'
+    elif 'Rising' in old_fig_name:
+        packet = 'Rising'
+    elif 'Falling' in old_fig_name:
+        packet = 'Falling'
+    elif 'Structure' in old_fig_name:
+        packet = 'Structure'
+    elif 'Hiss' in old_fig_name:
+        packet = 'Hiss'
+    else:
+        packet = 'AS'
+    fig_name = get_fig_name(new_start, new_end, new_save_dict, save_name, packet)
+    if os.path.exists(fig_name) == True: 
+        continue
+    initFigure()
+    spec_data, spec_freq, spec_time, spec_img = plt.specgram(B[new_start:new_end], NFFT=nfft, Fs=Fs, noverlap=noverlap, scale='dB',cmap='jet')
+    time_array, fce, flag = time_setting(new_start,new_end)
+    if flag == 1:
+        continue
+    if is_axis == True:
+        plot_setting(spec_time,time_array,fce)
+    else:
+        plt.axis('off')
+        plt.clim(-50,20)
 
-            if i+TIME_SCALE*Fs > end:
-                new_start = end-TIME_SCALE*Fs
-                new_end = end
-            fig_name = get_fig_name(split_tmp, new_start, new_end, new_save_dict, save_name)
-            if os.path.exists(fig_name) == True: 
-                continue
-            initFigure()
-            spec_data, spec_freq, spec_time, spec_img = plt.specgram(B[new_start:new_end], NFFT=nfft, Fs=Fs, noverlap=noverlap, scale='dB',cmap='jet')
-            time_array, fce, flag = time_setting(new_start,new_end)
-            if flag == 1:
-                continue
-            try:
-                plot_setting(spec_time,time_array,fce)
+    if lower_band == True:
+        if upper_band == True:
+            plt.ylim(0,np.max(fce))
+            if is_half_fce == True:
                 fce_plot(spec_time,fce)
-            except:
-                k = k+1
-                continue
-            saveFigure(fig_name)
-    print(wfc_name)
-print(j)
-print(k)
+        else:
+            plt.ylim(0,np.max(fce/2))
+    else:
+            plt.ylim(np.min(fce/2),np.max(fce))
+
+
+    if is_axis == True:
+        saveFigure(fig_name)
+    else:
+        saveFigure_without_axis(fig_name)
+
+    print(fig_name)
