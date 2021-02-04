@@ -154,9 +154,6 @@ else:
 
 # Select WFC file
 old_fig_list = glob.glob(save_dict+'*.png')
-old_fig_list = glob.glob(save_dict+'*Rising.png')
-j=0
-k=0
 for old_fig_name in old_fig_list:
     wfc_date_time = old_fig_name[17:27]
     wfc_name = glob.glob(wfc_dict+'*b_65khz*'+wfc_date_time+'*.cdf')[0]
