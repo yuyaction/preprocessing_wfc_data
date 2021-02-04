@@ -54,14 +54,15 @@ year = 2017
 month = 5
 #------------------------------------------------
 save_dict = './mgf/'+str(year)+'/'+str(month).zfill(2)+'/'
+#save_dict = './wfc/'+str(year)+'/'+str(month).zfill(2)+'/'
 os.makedirs(save_dict,exist_ok=True) #make directories to save
 URL_list = []
 size_list = []
 
 #Authorization and getting URL_list for download
 #if you need the authentification to get some data, please use "setup_digest_auth" function.
-#setup_digest_auth(mgf_url,user,password) #digest auth
-get_URL(year,month,mgf_url)
+#setup_digest_auth(base_url,user,password) #digest auth
+get_URL(year,month,base_url)
 #calculation sum of file size
 np_size_list = np.array(size_list)
 sum_size = np.sum(np.round(np_size_list, decimals=2))
